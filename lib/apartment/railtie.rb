@@ -43,7 +43,7 @@ module Apartment
 
       # Apartment::Reloader is middleware to initialize things properly on each request to dev
       initializer 'apartment.init' do |app|
-        app.config.middleware.use "Apartment::Reloader"
+        app.config.middleware.use Apartment::Reloader
       end
 
       # Overrides reload! to also call Apartment::Database.init as well so that the reloaded classes have the proper table_names
