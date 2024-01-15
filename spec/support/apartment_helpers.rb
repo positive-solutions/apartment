@@ -26,7 +26,11 @@ module Apartment
     end
 
     def load_schema
-      silence_stream(STDOUT){ load(Rails.root.join('db', 'schema.rb')) }
+      original_stdout = $stdout.clone
+      $stdout.reopen(File.new('/dev/null', 'w'))
+      load(Rails.root.join('db', 'schema.rb'))
+    ensure
+      $stdout.reopen(original_stdout)
     end
 
     def migrate

@@ -17,7 +17,7 @@ module Apartment
     private
 
       def rescue_from
-        PGError
+        PG::Error
       end
     end
 

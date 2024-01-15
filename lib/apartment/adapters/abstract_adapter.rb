@@ -98,7 +98,11 @@ module Apartment
       #   Load the rails seed file into the db
       #
       def seed_data
-        silence_stream(STDOUT){ load_or_abort("#{Rails.root}/db/seeds.rb") } # Don't log the output of seeding the db
+        original_stdout = $stdout.clone
+        $stdout.reopen(File.new('/dev/null', 'w'))
+        load_or_abort("#{Rails.root}/db/seeds.rb") # Don't log the output of seeding the db
+      ensure
+        $stdout.reopen(original_stdout)
       end
       alias_method :seed, :seed_data
 

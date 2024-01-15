@@ -6,7 +6,7 @@ describe Apartment::Elevators::HostHash do
     it "parses the host for a domain name" do
       request = ActionDispatch::Request.new('HTTP_HOST' => 'example.com')
       elevator = Apartment::Elevators::HostHash.new(nil, 'example.com' => 'example_database')
-      elevator.parse_database_name(request).should == 'example_database'
+      expect(elevator.parse_database_name(request)).to eq('example_database')
     end
 
     it "raises DatabaseNotFound exception if there is no host" do

@@ -6,50 +6,50 @@ describe Apartment do
 
     let(:excluded_models){ [Company] }
 
-    it "should yield the Apartment object" do
+    it "yields the Apartment object" do
       Apartment.configure do |config|
         config.excluded_models = []
-        config.should == Apartment
+        expect(config).to eq(Apartment)
       end
     end
 
-    it "should set excluded models" do
+    it "sets excluded models" do
       Apartment.configure do |config|
         config.excluded_models = excluded_models
       end
-      Apartment.excluded_models.should == excluded_models
+      expect(Apartment.excluded_models).to eq(excluded_models)
     end
 
-    it "should set use_schemas" do
+    it "sets use_schemas" do
       Apartment.configure do |config|
         config.excluded_models = []
         config.use_schemas = false
       end
-      Apartment.use_schemas.should be_false
+      expect(Apartment.use_schemas).to be_falsey
     end
 
-    it "should set seed_after_create" do
+    it "sets seed_after_create" do
       Apartment.configure do |config|
         config.excluded_models = []
         config.seed_after_create = true
       end
-      Apartment.seed_after_create.should be_true
+      expect(Apartment.seed_after_create).to be_truthy
     end
 
     context "databases" do
-      it "should return object if it doesnt respond_to call" do
+      it "returns object if it doesn't respond_to call" do
         database_names = ['users', 'companies']
 
         Apartment.configure do |config|
           config.excluded_models = []
           config.database_names = database_names
         end
-        Apartment.database_names.should == database_names
+        expect(Apartment.database_names).to eq(database_names)
       end
 
       it "should invoke the proc if appropriate" do
         database_names = lambda{ ['users', 'users'] }
-        database_names.should_receive(:call)
+        expect(database_names).to receive(:call)
 
         Apartment.configure do |config|
           config.excluded_models = []
@@ -59,14 +59,14 @@ describe Apartment do
       end
 
       it "should return the invoked proc if appropriate" do
-        dbs = lambda{ Company.scoped }
+        dbs = lambda{ Company.all }
 
         Apartment.configure do |config|
           config.excluded_models = []
           config.database_names = dbs
         end
 
-        Apartment.database_names.should == Company.scoped
+        expect(Apartment.database_names).to eq(Company.all)
       end
     end
 

@@ -4,12 +4,12 @@ describe 'query caching' do
   before do
     Apartment.configure do |config|
       config.excluded_models = ["Company"]
-      config.database_names = lambda{ Company.scoped.collect(&:database) }
+      config.database_names = lambda{ Company.all.collect(&:database) }
     end
 
     db_names.each do |db_name|
       Apartment::Database.create(db_name)
-      Company.create :database => db_name
+      Company.create(database: db_name)
     end
   end
 
@@ -23,15 +23,15 @@ describe 'query caching' do
   it 'clears the ActiveRecord::QueryCache after switching databases' do
     db_names.each do |db_name|
       Apartment::Database.switch db_name
-      User.create! name: db_name
+      User.create!(name: db_name)
     end
 
     ActiveRecord::Base.connection.enable_query_cache!
 
     Apartment::Database.switch db_names.first
-    User.find_by_name(db_names.first).name.should == db_names.first
+    expect(User.find_by_name(db_names.first).name).to eq(db_names.first)
 
     Apartment::Database.switch db_names.last
-    User.find_by_name(db_names.first).should be_nil
+    expect(User.find_by_name(db_names.first)).to be_nil
   end
 end

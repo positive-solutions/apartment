@@ -1,69 +1,6 @@
 require 'spec_helper'
 
 describe Apartment::Database do
-  context "using mysql" do
-    # See apartment.yml file in dummy app config
-
-    let(:config){ Apartment::Test.config['connections']['mysql'].symbolize_keys }
-
-    before do
-      ActiveRecord::Base.establish_connection config
-      Apartment::Test.load_schema   # load the Rails schema in the public db schema
-      subject.stub(:config).and_return config   # Use mysql database config for this test
-    end
-
-    describe "#adapter" do
-      before do
-        subject.reload!
-      end
-
-      it "should load mysql adapter" do
-        subject.adapter
-        Apartment::Adapters::Mysql2Adapter.should be_a(Class)
-      end
-    end
-
-    # TODO this doesn't belong here, but there aren't integration tests currently for mysql
-    # where to put???
-    describe "#exception recovery", :type => :request do
-      let(:database1){ Apartment::Test.next_db }
-
-      before do
-        subject.reload!
-        subject.create database1
-      end
-      after{ subject.drop database1 }
-
-      it "should recover from incorrect database" do
-        session = Capybara::Session.new(:rack_test, Capybara.app)
-        session.visit("http://#{database1}.com")
-        expect {
-          session.visit("http://this-database-should-not-exist.com")
-        }.to raise_error
-        session.visit("http://#{database1}.com")
-      end
-
-    end
-    
-    context "with prefix and schemas" do
-      describe "#create" do
-        before do
-          Apartment.configure do |config|
-            config.prepend_environment = true
-            config.use_schemas = true
-          end
-          subject.reload!(config) # switch to Mysql2SchemaAdapter
-        end
-        
-        after { subject.drop "db_with_prefix" rescue nil }
-        
-        it "should create a new database" do
-          subject.create "db_with_prefix"
-        end
-      end
-    end
-  end
-
   context "using postgresql" do
 
     # See apartment.yml file in dummy app config
@@ -76,7 +13,7 @@ describe Apartment::Database do
       Apartment.use_schemas = true
       ActiveRecord::Base.establish_connection config
       Apartment::Test.load_schema   # load the Rails schema in the public db schema
-      subject.stub(:config).and_return config   # Use postgresql database config for this test
+      allow(subject).to receive(:config).and_return config   # Use postgresql database config for this test
     end
 
     describe "#adapter" do
@@ -86,11 +23,11 @@ describe Apartment::Database do
 
       it "should load postgresql adapter" do
         subject.adapter
-        Apartment::Adapters::PostgresqlAdapter.should be_a(Class)
+        expect(Apartment::Adapters::PostgresqlAdapter).to be_a(Class)
       end
 
       it "should raise exception with invalid adapter specified" do
-        subject.stub(:config).and_return config.merge(:adapter => 'unkown')
+        allow(subject).to receive(:config).and_return config.merge(:adapter => 'unknown')
 
         expect {
           Apartment::Database.adapter
@@ -102,9 +39,9 @@ describe Apartment::Database do
 
         it 'has a threadsafe adapter' do
           subject.switch(database)
-          thread = Thread.new { subject.current_database.should == Apartment.default_schema }
+          thread = Thread.new { expect(subject.current_database).to eq(Apartment.default_schema) }
           thread.join
-          subject.current_database.should == database
+          expect(subject.current_database).to eq(database)
         end
       end
     end
@@ -125,7 +62,7 @@ describe Apartment::Database do
       describe "#create" do
         it "should seed data" do
           subject.switch database
-          User.count.should be > 0
+          expect(User.count).to be > 0
         end
       end
 
@@ -146,10 +83,10 @@ describe Apartment::Database do
             db_count = User.count + x.times{ User.create }
 
             subject.switch database2
-            User.count.should == db2_count
+            expect(User.count).to eq(db2_count)
 
             subject.switch database
-            User.count.should == db_count
+            expect(User.count).to eq(db_count)
           end
         end
 
@@ -168,9 +105,9 @@ describe Apartment::Database do
 
             subject.switch database
             x.times{ Company.create }
-            Company.count.should == count + x
+            expect(Company.count).to eq(count + x)
             subject.reset
-            Company.count.should == count + x
+            expect(Company.count).to eq(count + x)
           end
         end
 

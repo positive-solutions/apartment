@@ -8,7 +8,7 @@ describe Apartment::Migrator do
 
   before do
     ActiveRecord::Base.establish_connection config
-    Apartment::Database.stub(:config).and_return config   # Use postgresql config for this test
+    allow(Apartment::Database).to receive(:config).and_return config
     @original_schema = ActiveRecord::Base.connection.schema_search_path
     # Necessary because the JDBC adapter returns $user in the search path
     @original_schema.gsub!(/"\$user",/, '') if defined?(JRUBY_VERSION)
@@ -19,9 +19,9 @@ describe Apartment::Migrator do
       config.database_names = [schema_name]
     end
 
-    Apartment::Database.create schema_name    # create the schema
-    migrations_path = Rails.root + ActiveRecord::Migrator.migrations_path     # tell AR where the real migrations are
-    ActiveRecord::Migrator.stub(:migrations_path).and_return(migrations_path)
+    Apartment::Database.create schema_name
+    migrations_path = Rails.root.join(ActiveRecord::Migration.migrations_paths.first)
+    allow(ActiveRecord::Migration).to receive(:migrations_paths).and_return([migrations_path])
   end
 
   after do
@@ -34,13 +34,13 @@ describe Apartment::Migrator do
 
       describe "#migrate" do
         it "should connect to new db, then reset when done" do
-          ActiveRecord::Base.connection.should_receive(:schema_search_path=).with(%{"#{schema_name}"}).once
-          ActiveRecord::Base.connection.should_receive(:schema_search_path=).with(%{"#{@original_schema}"}).once
+          expect(ActiveRecord::Base.connection).to receive(:schema_search_path=).with(%{"#{schema_name}"}).once
+          expect(ActiveRecord::Base.connection).to receive(:schema_search_path=).with(%{"#{@original_schema}"}).once
           Apartment::Migrator.migrate(schema_name)
         end
 
         it "should migrate db" do
-          ActiveRecord::Migrator.should_receive(:migrate)
+          expect(ActiveRecord::MigrationContext).to receive_message_chain(:new, :migrate)
           Apartment::Migrator.migrate(schema_name)
         end
       end
@@ -49,13 +49,14 @@ describe Apartment::Migrator do
         context "up" do
 
           it "should connect to new db, then reset when done" do
-            ActiveRecord::Base.connection.should_receive(:schema_search_path=).with(%{"#{schema_name}"}).once
-            ActiveRecord::Base.connection.should_receive(:schema_search_path=).with(%{"#{@original_schema}"}).once
+            expect(ActiveRecord::Base.connection).to receive(:schema_search_path=).with(%{"#{schema_name}"}).once
+            expect(ActiveRecord::Base.connection).to receive(:schema_search_path=).with(%{"#{@original_schema}"}).once
+            p version
             Apartment::Migrator.run(:up, schema_name, version)
           end
 
           it "should migrate to a version" do
-            ActiveRecord::Migrator.should_receive(:run).with(:up, anything, version)
+            expect(ActiveRecord::MigrationContext).to receive_message_chain(:new, :run).with(:up, version)
             Apartment::Migrator.run(:up, schema_name, version)
           end
         end
@@ -63,13 +64,14 @@ describe Apartment::Migrator do
         describe "down" do
 
           it "should connect to new db, then reset when done" do
-            ActiveRecord::Base.connection.should_receive(:schema_search_path=).with(%{"#{schema_name}"}).once
-            ActiveRecord::Base.connection.should_receive(:schema_search_path=).with(%{"#{@original_schema}"}).once
+            expect(ActiveRecord::Base.connection).to receive(:schema_search_path=).with(%{"#{schema_name}"}).once
+            expect(ActiveRecord::Base.connection).to receive(:schema_search_path=).with(%{"#{@original_schema}"}).once
+            p version
             Apartment::Migrator.run(:down, schema_name, version)
           end
 
           it "should migrate to a version" do
-            ActiveRecord::Migrator.should_receive(:run).with(:down, anything, version)
+            expect(ActiveRecord::MigrationContext).to receive_message_chain(:new, :run).with(:down, version)
             Apartment::Migrator.run(:down, schema_name, version)
           end
         end
@@ -79,7 +81,7 @@ describe Apartment::Migrator do
         let(:steps){ 3 }
 
         it "should rollback the db" do
-          ActiveRecord::Migrator.should_receive(:rollback).with(anything, steps)
+          expect(ActiveRecord::MigrationContext).to receive_message_chain(:new, :rollback).with(steps)
           Apartment::Migrator.rollback(schema_name, steps)
         end
       end

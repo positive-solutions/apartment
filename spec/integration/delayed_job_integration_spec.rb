@@ -14,7 +14,7 @@ describe Apartment::Delayed do
     before do
       ActiveRecord::Base.establish_connection config
       Apartment::Test.load_schema   # load the Rails schema in the public db schema
-      Apartment::Database.stub(:config).and_return config   # Use postgresql database config for this test
+      allow(Apartment::Database).to receive(:config).and_return(config)   # Use postgresql database config for this test
 
       Apartment.configure do |config|
         config.use_schemas = true
@@ -40,7 +40,7 @@ describe Apartment::Delayed do
 
       it "should initialize a database attribute on a class" do
         user = User.first
-        user.database.should == database
+        expect(user.database).to eq(database)
       end
 
       context 'when there are defined callbacks' do
@@ -62,22 +62,22 @@ describe Apartment::Delayed do
 
         it "should not overwrite any previous after_initialize declarations" do
           user = User.first
-          user.database.should == database
-          user.name.should == "Some Name"
+          expect(user.database).to eq(database)
+          expect(user.name).to eq("Some Name")
         end
       end
 
       it "should set the db on a new record before it saves" do
         user = User.create
-        user.database.should == database
+        expect(user.database).to eq(database)
       end
 
       context "serialization" do
         it "should serialize the proper database attribute" do
           user_yaml = User.first.to_yaml
           Apartment::Database.switch database2
-          user = YAML.load user_yaml
-          user.database.should == database
+          user = YAML.unsafe_load(user_yaml)
+          expect(user["database"]).to eq(database)
         end
       end
     end
@@ -91,7 +91,7 @@ describe Apartment::Delayed do
         Apartment::Database.switch database
         worker.run(job)
 
-        Apartment::Database.current_database.should == database
+        expect(Apartment::Database.current_database).to eq(database)
       end
     end
 

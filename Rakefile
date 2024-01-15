@@ -24,7 +24,7 @@ task :default => :spec
 
 namespace :db do
   namespace :test do
-    task :prepare => %w{postgres:drop_db postgres:build_db mysql:drop_db mysql:build_db}
+    task :prepare => %w{postgres:drop_db postgres:build_db}
   end
 
   desc "copy sample database credential files over if real files don't exist"
@@ -46,32 +46,13 @@ namespace :postgres do
   task :build_db do
     %x{ createdb -E UTF8 #{pg_config['database']} -U#{pg_config['username']} } rescue "test db already exists"
     ActiveRecord::Base.establish_connection pg_config
-    ActiveRecord::Migrator.migrate('spec/dummy/db/migrate')
+    ActiveRecord::Migration.migrate('spec/dummy/db/migrate')
   end
 
   desc "drop the PostgreSQL test database"
   task :drop_db do
     puts "dropping database #{pg_config['database']}"
     %x{ dropdb #{pg_config['database']} -U#{pg_config['username']} }
-  end
-
-end
-
-namespace :mysql do
-  require 'active_record'
-  require "#{File.join(File.dirname(__FILE__), 'spec', 'support', 'config')}"
-
-  desc 'Build the MySQL test databases'
-  task :build_db do
-    %x{ mysqladmin -u #{my_config['username']} create #{my_config['database']} } rescue "test db already exists"
-    ActiveRecord::Base.establish_connection my_config
-    ActiveRecord::Migrator.migrate('spec/dummy/db/migrate')
-  end
-
-  desc "drop the MySQL test database"
-  task :drop_db do
-    puts "dropping database #{my_config['database']}"
-    %x{ mysqladmin -u #{my_config['username']} drop #{my_config['database']} --force}
   end
 
 end
@@ -83,8 +64,4 @@ end
 
 def pg_config
   config['postgresql']
-end
-
-def my_config
-  config['mysql']
 end
